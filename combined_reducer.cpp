@@ -3,7 +3,7 @@
 class ClassBase {
 public:
     ClassBase() {}
-    virtual ~ClassBase() {}
+    virtual KOKKOS_FUNCTION ~ClassBase() {}
 };
 
 class ClassDerived : public ClassBase {
@@ -41,7 +41,24 @@ public:
         printf("Max = %e %e\n", dmax[0], dmax[1]);
     }
 
-    ~ClassDerived() {}
+    KOKKOS_FUNCTION ~ClassDerived() {}
+};
+
+struct Struct {};
+
+class ClassDerived2 : public ClassBase {
+public:
+    Struct* s;
+
+    ClassDerived2() {
+        void* p = Kokkos::kokkos_malloc<Kokkos::SharedSpace>(sizeof(Struct));
+        s = new(p) Struct();
+    }
+
+    KOKKOS_FUNCTION ~ClassDerived2() {
+        if (s) s->~Struct();
+        Kokkos::kokkos_free<Kokkos::SharedSpace>(s);
+    }
 };
 
 int main(int argc, char* argv[])
@@ -49,6 +66,7 @@ int main(int argc, char* argv[])
     Kokkos::ScopeGuard guard(argc, argv);
 
     ClassDerived c;
+    ClassDerived2 c2;
 
     return 0;
 }
